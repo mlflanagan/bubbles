@@ -2,30 +2,37 @@
 <html lang='en-US'>
 <head>
 <meta charset="utf-8">
-<title>Canvas</title>
+<title>Bubbles</title>
 <script type = "text/javascript">
 /*global window, console, document */
 (function () {
     'use strict';
 
-    var canvas, context, bubbles;
+    /*
+    TODO:
+    - handle click event better and remove running flag
+    - detect the fullscreen size and remove canvas width and height params
+    */
+    
+    var canvas, context,
+        bubbles, nbrBubbles = 250,
+        running = false;
 
     function randColor() {
-        // return ['red', 'orange', 'yellow', 'green', 'blue', 'purple'][Math.random() * 6 | 0];
-        var colors = ['gray', 'silver', 'white', 'maroon', 'red', 'olive', 'yellow', 'green', 'lime', 'teal', 'aqua', 'navy', 'blue', 'purple', 'fuchsia'];
+        var colors = ['gray',  'silver', 'white', 'maroon', 'red',
+                      'olive', 'yellow', 'green', 'lime',   'teal',
+                      'aqua',  'navy',   'blue',  'purple', 'fuchsia'];
         return colors[Math.floor(Math.random() * colors.length)];
     }
     
     function randBetween(min, max) {
-        /* Return a number in the open interval [min, max). For the closed
-        interval [min, max], use Math.random() * (max - min + 1) + min; */
-
-        // return Math.floor(Math.random() * (max - min)) + min;
+        /* Return a number in the open interval [min, max).
+        For the closed interval use (max - min + 1) + min; */
         return Math.random() * (max - min) + min;
     }
 
     function update() {
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < nbrBubbles; i++) {
             bubbles[i].x += bubbles[i].dx;
             if (bubbles[i].x < bubbles[i].radius) {
                 bubbles[i].dx = -bubbles[i].dx;
@@ -45,12 +52,17 @@
     }
 
     function draw() {
-        /* clearRect not needed; we fill the entire canvas in next statement
-        context.clearRect(0, 0, canvas.width, canvas.height); */
+        // make sure we're really full screen
+        if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+
+        // not needed; we fill the entire canvas in next statement
+        // context.clearRect(0, 0, canvas.width, canvas.height);
         context.fillRect(0, 0, canvas.width, canvas.height);
 
-        // draw bubbles
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < nbrBubbles; i++) {
             context.beginPath();
             context.arc(bubbles[i].x, bubbles[i].y, bubbles[i].radius, 0, 2 * Math.PI, false);
             context.strokeStyle = bubbles[i].color;
@@ -64,30 +76,47 @@
         draw();
     }
 
+    function startup(e) {
+        /* not sure why this isn't working
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        e.preventDefault(); */
+
+        if (!running) {
+            console.debug("startup");
+            running = true;
+            
+            canvas.requestFullscreen() || canvas.webkitRequestFullscreen() || canvas.mozRequestFullScreen() || msRequestFullscreen();
+
+            bubbles = [];
+            for (var i = 0; i < nbrBubbles; i++) {
+                bubbles[i] = {
+                    x: 0, y: 0,
+                    radius: Math.floor(Math.random() * 25) + 5,
+                    color: randColor(),
+                    dx: randBetween(-2, 2),
+                    dy: randBetween(-2, 2)
+                };
+
+                bubbles[i].x = randBetween(bubbles[i].radius, canvas.width - bubbles[i].radius);
+                bubbles[i].y = randBetween(bubbles[i].radius, canvas.height - bubbles[i].radius);
+            }
+
+            setInterval(mainloop, 10);  // milliseconds
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 600;
+        canvas.width = 1500;
+        canvas.height = 800;
         document.body.appendChild(canvas);
+        
         context = canvas.getContext('2d');
-
-        bubbles = [];
-        for (var i = 0; i < 10; i++) {
-            bubbles[i] = {
-                x: 0,
-                y: 0,
-                radius: Math.floor(Math.random() * 25) + 5,
-                color: randColor(),
-                dx: randBetween(-2, 2),
-                dy: randBetween(-2, 2)
-            };
-
-            bubbles[i].x = randBetween(bubbles[i].radius, canvas.width - bubbles[i].radius);
-            bubbles[i].y = randBetween(bubbles[i].radius, canvas.height - bubbles[i].radius);
-            // console.log('color =', bubbles[i].color, 'radius =', bubbles[i].radius, 'x =', bubbles[i].x, 'y =', bubbles[i].y, 'dx =', bubbles[i].dx, 'dy =', bubbles[i].dy);
-        }
-
-        window.setInterval(mainloop, 10);  // milliseconds
+        context.font = "50px Arial";
+        context.fillText("Click anywhere to begin", 10, 50);
+        
+        window.addEventListener('click', startup, true);
     });
 }());
 </script>
